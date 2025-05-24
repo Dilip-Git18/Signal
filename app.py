@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify
 import sqlite3
-import datetime
+
 app = Flask(__name__)
 
 # Function to fetch graph data from ambulance.db
@@ -38,7 +38,7 @@ def node_info(node):
     if row:
         return jsonify({
             'phone': row[0],
-            'capacity': row[1],
+            'capacity': row[1],   
             'website': row[2],
             'specialties': row[3],
             'status': row[4]
@@ -69,6 +69,34 @@ def record_action(node):
     except sqlite3.OperationalError as e:
         print("error:", e)
         return jsonify({'error': 'Database is locked, try again later'}), 500
+
+@app.route('/dashboard')
+def dashboard():
+    # Fetch graph data
+    conn1 = sqlite3.connect('ambulance.db')
+    cursor1 = conn1.cursor()
+    cursor1.execute("SELECT * FROM distances")
+    distances = cursor1.fetchall()
+    
+    cursor1.execute("SELECT * FROM node_clicks")
+    clicks = cursor1.fetchall()
+
+    cursor1.execute("SELECT * FROM node_actions")
+    actions = cursor1.fetchall()
+    conn1.close()
+
+    # Fetch metadata
+    conn2 = sqlite3.connect('node_metadata.db')
+    cursor2 = conn2.cursor()
+    cursor2.execute("SELECT * FROM node_details")
+    metadata = cursor2.fetchall()
+    conn2.close()
+
+    return render_template('dashboard.html',
+                           distances=distances,
+                           metadata=metadata,
+                           clicks=clicks,
+                           actions=actions)
 
 if __name__ == '__main__':
     app.run(debug=True)
